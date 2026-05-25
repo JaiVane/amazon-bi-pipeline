@@ -67,29 +67,31 @@ if len(files) > 5:
 
 from pyspark.sql.types import (
     StructType, StructField,
-    StringType, FloatType, IntegerType, LongType, BooleanType
+    StringType, FloatType, IntegerType, LongType, BooleanType, DoubleType
 )
 
 SCHEMA_EVENTO = StructType([
-    StructField("event_id",          StringType(),  False),
-    StructField("user_id",           StringType(),  False),
-    StructField("product_id",        StringType(),  False),
+    StructField("event_id",          StringType(),  True),
+    StructField("user_id",           StringType(),  True),
+    StructField("asin",              StringType(),  True),
+    StructField("parent_asin",       StringType(),  True),
+    StructField("product_id",        StringType(),  True),
     StructField("event_type",        StringType(),  True),
-    StructField("rating",            FloatType(),   True),
+    StructField("rating",            DoubleType(),  True),
     StructField("category",          StringType(),  True),
-    StructField("timestamp",         LongType(),    True),   # unix-ms
+    StructField("timestamp",         LongType(),    True),
     StructField("verified_purchase", BooleanType(), True),
-    StructField("helpful_vote",      IntegerType(), True),
+    StructField("helpful_vote",      LongType(),    True),
     StructField("data_source",       StringType(),  True),
     StructField("ingestion_ts",      StringType(),  True),
-    StructField("_kafka_partition",  IntegerType(), True),
+    StructField("_kafka_partition",  LongType(),    True),
     StructField("_kafka_offset",     LongType(),    True),
     StructField("_kafka_topic",      StringType(),  True),
+    StructField("text",              StringType(),  True),
+    StructField("title",             StringType(),  True),
 ])
 
-print(f"✅ Schema definido: {len(SCHEMA_EVENTO.fields)} campos")
-for f in SCHEMA_EVENTO.fields:
-    print(f"   {f.name:<22} {str(f.dataType):<15} nullable={f.nullable}")
+print(f"✅ Schema corregido: {len(SCHEMA_EVENTO.fields)} campos")
 
 # COMMAND ----------
 # ═══════════════════════════════════════════════════════════
@@ -104,32 +106,37 @@ for f in SCHEMA_EVENTO.fields:
 # y reinicia, nunca procesa el mismo archivo dos veces.
 # ═══════════════════════════════════════════════════════════
 
-from pyspark.sql.functions import current_timestamp, col, lit
+from pyspark.sql.functions import current_timestamp, col, coalesce, when
 
-# Leer con Auto Loader (Structured Streaming)
 df_stream = (
     spark.readStream
-    .format("cloudFiles")                                        # Auto Loader
-    .option("cloudFiles.format", "json")                        # archivos JSONL del consumer.py
+    .format("cloudFiles")
+    .option("cloudFiles.format", "json")
     .option("cloudFiles.schemaLocation", CHECKPOINT_PATH + "/schema")
-    .option("cloudFiles.inferColumnTypes", "false")             # usamos schema explícito
-    .option("multiLine", "false")                               # una línea por evento
+    .option("cloudFiles.inferColumnTypes", "false")
+    .option("multiLine", "false")
     .schema(SCHEMA_EVENTO)
     .load(LANDING_PATH)
 )
 
-# Enriquecer con metadatos de ingesta (requerido por el doc: sección 3.2)
 df_bronze = (
     df_stream
-    .withColumn("_bronze_load_ts",  current_timestamp())
-    .withColumn("_source",          col("data_source"))
-    .withColumn("event_datetime",   (col("timestamp") / 1000).cast("timestamp"))
+    .withColumn("product_id",      coalesce(col("product_id"), col("asin")))
+    .withColumn("_bronze_load_ts", current_timestamp())
+    .withColumn("_source",         col("data_source"))
+    .withColumn("event_datetime",  (col("timestamp") / 1000).cast("timestamp"))
+    .withColumn("category",
+        coalesce(
+            col("category"),
+            when(col("_metadata.file_name").contains("Electronics"), "Electronics")
+            .when(col("_metadata.file_name").contains("Home_and_Kitchen"), "Home_and_Kitchen")
+        )
+    )
 )
 
-print("✅ Stream configurado con Auto Loader (Structured Streaming)")
+print("✅ Stream configurado — category inferida desde nombre de archivo")
 print(f"   Fuente  : {LANDING_PATH}")
 print(f"   Destino : {BRONZE_TABLE}")
-print(f"   Formato : cloudFiles (json)")
 
 # COMMAND ----------
 # ═══════════════════════════════════════════════════════════
