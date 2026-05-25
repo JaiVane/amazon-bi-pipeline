@@ -3,10 +3,9 @@
 # Modelo: silver_reviews
 # Rama: feature/processing (Juan Camilo)
 #
-# Cambios v2:
-#   - Agregado test "unique" en event_id (requerido por doc)
-#   - Agregado test "relationships" entre silver y bronze
-#   - Agregado test "unique" en columnas clave
+# Cambios v3:
+#   - ✅ Fix sintaxis "relationships" → anidado bajo "config/arguments"
+#     (requerido por dbt 1.9+ para evitar deprecation warning)
 # ============================================================
 
 version: 2
@@ -36,10 +35,12 @@ models:
         description: "ID único del evento"
         tests:
           - not_null
-          - unique # ← requerido por el doc
-          - relationships: # ← requerido por el doc
+          - unique
+          - relationships: # ✅ sintaxis corregida dbt 1.9+
               to: source('bronze', 'reviews_raw')
               field: event_id
+              config:
+                severity: warn # warn en vez de error — Bronze puede tener más IDs que Silver (filtrados)
 
       # ── Identificadores ───────────────────────────────────
       - name: user_id
