@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: silver
+    database: amazon_bi
+    schema: silver
+    tables:
+      - name: reviews_clean
+        description: "Reseñas Amazon limpias — fuente oficial Silver (PySpark 02_silver.py)"
