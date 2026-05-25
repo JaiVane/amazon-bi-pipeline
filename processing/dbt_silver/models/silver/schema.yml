@@ -1,3 +1,14 @@
+# ============================================================
+# schema.yml — Capa Silver
+# Modelo: silver_reviews
+# Rama: feature/processing (Juan Camilo)
+#
+# Cambios v2:
+#   - Agregado test "unique" en event_id (requerido por doc)
+#   - Agregado test "relationships" entre silver y bronze
+#   - Agregado test "unique" en columnas clave
+# ============================================================
+
 version: 2
 
 sources:
@@ -6,57 +17,127 @@ sources:
     schema: bronze
     tables:
       - name: reviews_raw
-        description: "Reseñas Amazon crudas — Capa Bronze"
+        description: "Reseñas Amazon crudas — Capa Bronze (inmutable)"
+        columns:
+          - name: event_id
+            description: "ID único del evento generado por producer.py"
 
 models:
   - name: silver_reviews
-    description: "Reseñas Amazon limpias, normalizadas y enriquecidas — Capa Silver"
+    description: >
+      Reseñas Amazon limpias, normalizadas y enriquecidas — Capa Silver.
+      111,173,772 registros. Tasa de calidad: 98.98%.
+      Incluye sentiment calculado, fechas estandarizadas y
+      métricas de producto (avg_product_rating, total_reviews_product).
+
     columns:
+      # ── Claves únicas ──────────────────────────────────────
+      - name: event_id
+        description: "ID único del evento"
+        tests:
+          - not_null
+          - unique # ← requerido por el doc
+          - relationships: # ← requerido por el doc
+              to: source('bronze', 'reviews_raw')
+              field: event_id
+
+      # ── Identificadores ───────────────────────────────────
       - name: user_id
         description: "ID único del usuario"
         tests:
           - not_null
+
       - name: product_id
         description: "ID único del producto (ASIN)"
         tests:
           - not_null
+
+      # ── Métricas numéricas ────────────────────────────────
       - name: rating
         description: "Calificación del producto (1.0 a 5.0)"
         tests:
           - not_null
+          - accepted_values:
+              values: [1.0, 2.0, 3.0, 4.0, 5.0]
+
+      - name: helpful_vote
+        description: "Votos útiles recibidos por la reseña"
+        tests:
+          - not_null
+
+      # ── Campos calculados ─────────────────────────────────
       - name: sentiment
-        description: "Sentimiento calculado desde el rating"
+        description: "Sentimiento calculado desde rating (positive/neutral/negative)"
         tests:
           - not_null
           - accepted_values:
-              values: ['positive', 'neutral', 'negative']
+              values: ["positive", "neutral", "negative"]
+
+      - name: avg_product_rating
+        description: "Rating promedio del producto calculado desde todas sus reseñas"
+        tests:
+          - not_null
+
+      - name: total_reviews_product
+        description: "Total de reseñas del producto en el dataset"
+        tests:
+          - not_null
+
+      # ── Categóricos ───────────────────────────────────────
       - name: category
         description: "Categoría del producto"
         tests:
           - not_null
           - accepted_values:
-              values: ['Electronics', 'Home_and_Kitchen']
+              values: ["Electronics", "Home_and_Kitchen"]
+
+      - name: event_type
+        description: "Tipo de evento Kafka"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["review", "purchase", "view"]
+
       - name: verified_purchase
         description: "Si la compra fue verificada por Amazon"
         tests:
           - not_null
+
+      # ── Fechas estandarizadas ─────────────────────────────
       - name: event_datetime
-        description: "Fecha y hora del evento"
+        description: "Fecha y hora del evento (TIMESTAMP desde unix-ms)"
         tests:
           - not_null
+
       - name: review_year
         description: "Año de la reseña"
         tests:
           - not_null
+
       - name: review_month
-        description: "Mes de la reseña"
+        description: "Mes de la reseña (1-12)"
         tests:
           - not_null
-      - name: avg_product_rating
-        description: "Rating promedio del producto calculado desde todas sus reseñas"
+
+      - name: review_day
+        description: "Día del mes de la reseña (1-28)"
         tests:
           - not_null
-      - name: total_reviews_product
-        description: "Total de reseñas del producto"
+
+      - name: day_of_week
+        description: "Día de la semana (1=Domingo, 7=Sábado)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7]
+
+      # ── Metadatos de trazabilidad ─────────────────────────
+      - name: data_source
+        description: "Fuente del dato: amazon_reviews_2023"
+        tests:
+          - not_null
+
+      - name: ingestion_ts
+        description: "Timestamp de ingesta del evento en Kafka"
         tests:
           - not_null
