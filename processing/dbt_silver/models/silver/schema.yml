@@ -1,0 +1,42 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: amazon_bi
+    schema: bronze
+    tables:
+      - name: reviews_raw
+        description: "Reseñas Amazon crudas — Capa Bronze"
+
+models:
+  - name: silver_reviews
+    description: "Reseñas Amazon limpias y normalizadas — Capa Silver"
+    columns:
+      - name: user_id
+        description: "ID único del usuario"
+        tests:
+          - not_null
+      - name: product_id
+        description: "ID único del producto (ASIN)"
+        tests:
+          - not_null
+      - name: rating
+        description: "Calificación del producto (1.0 a 5.0)"
+        tests:
+          - not_null
+      - name: sentiment
+        description: "Sentimiento calculado desde el rating"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['positive', 'neutral', 'negative']
+      - name: category
+        description: "Categoría del producto"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Electronics', 'Home_and_Kitchen']
+      - name: verified_purchase
+        description: "Si la compra fue verificada"
+        tests:
+          - not_null
