@@ -1,0 +1,142 @@
+version: 2
+
+models:
+  - name: gold_dim_fecha
+    description: "Dimensión de tiempo — Star Schema Gold"
+    columns:
+      - name: fecha_key
+        description: "Clave surrogate de fecha (formato YYYYMMDD)"
+        tests:
+          - not_null
+          - unique
+      - name: fecha
+        tests:
+          - not_null
+      - name: anio
+        tests:
+          - not_null
+      - name: mes
+        tests:
+          - not_null
+      - name: trimestre
+        tests:
+          - not_null
+
+  - name: gold_dim_producto
+    description: "Dimensión de productos — Star Schema Gold"
+    columns:
+      - name: product_id
+        description: "ID único del producto (ASIN)"
+        tests:
+          - not_null
+      - name: category
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Electronics", "Home_and_Kitchen"]
+      - name: avg_rating_producto
+        tests:
+          - not_null
+      - name: total_resenas
+        tests:
+          - not_null
+
+  - name: gold_dim_usuario
+    description: "Dimensión de usuarios — Star Schema Gold"
+    columns:
+      - name: user_id
+        description: "ID único del usuario"
+        tests:
+          - not_null
+          - unique
+      - name: total_resenas
+        tests:
+          - not_null
+      - name: avg_rating_dado
+        tests:
+          - not_null
+
+  - name: gold_dim_categoria
+    description: "Dimensión de categorías — Star Schema Gold"
+    columns:
+      - name: categoria
+        description: "Nombre de la categoría"
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              values: ["Electronics", "Home_and_Kitchen"]
+      - name: total_resenas
+        tests:
+          - not_null
+
+  - name: gold_fact_reviews
+    description: >
+      Tabla de hechos central del Star Schema.
+      Contiene todas las métricas numéricas de las reseñas Amazon.
+      Se conecta a dim_fecha, dim_producto, dim_usuario y dim_categoria.
+    columns:
+      - name: event_id
+        description: "ID único del evento"
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        tests:
+          - not_null
+      - name: product_id
+        tests:
+          - not_null
+      - name: fecha_key
+        tests:
+          - not_null
+      - name: rating
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1.0, 2.0, 3.0, 4.0, 5.0]
+      - name: sentiment
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["positive", "neutral", "negative"]
+      - name: category
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Electronics", "Home_and_Kitchen"]
+
+exposures:
+  - name: dashboard_ejecutivo
+    type: dashboard
+    maturity: high
+    description: "Dashboard ejecutivo — KPIs generales de Amazon Reviews"
+    depends_on:
+      - ref('gold_fact_reviews')
+      - ref('gold_dim_producto')
+      - ref('gold_dim_categoria')
+    owner:
+      name: Juan de Dios González
+      email: juandediosgn7@gmail.com
+
+  - name: dashboard_operacional
+    type: dashboard
+    maturity: high
+    description: "Dashboard operacional — métricas de detalle por dimensión"
+    depends_on:
+      - ref('gold_fact_reviews')
+      - ref('gold_dim_fecha')
+      - ref('gold_dim_usuario')
+    owner:
+      name: Juan de Dios González
+      email: juandediosgn7@gmail.com
+
+  - name: dashboard_calidad
+    type: dashboard
+    maturity: medium
+    description: "Dashboard de calidad de datos — completitud y anomalías"
+    depends_on:
+      - ref('gold_fact_reviews')
+    owner:
+      name: Juan de Dios González
+      email: juandediosgn7@gmail.com
