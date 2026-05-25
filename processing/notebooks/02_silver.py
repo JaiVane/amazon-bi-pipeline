@@ -1,9 +1,18 @@
+<<<<<<< Updated upstream
 # COMMAND ----------
 # Celda 1 — Configuración
+=======
+# ============================================
+# 🥈 CAPA SILVER — Limpieza y Transformación
+# Amazon Reviews 2023 — E-Commerce Pipeline
+# ============================================
+
+>>>>>>> Stashed changes
 spark.sql("USE CATALOG amazon_bi")
 spark.sql("USE SCHEMA silver")
 print("✅ Conectado a amazon_bi.silver")
 
+<<<<<<< Updated upstream
 # COMMAND ----------
 # Celda 2 — Leer desde Bronze
 df_bronze = spark.table("amazon_bi.bronze.reviews_raw")
@@ -64,3 +73,9 @@ print("✅ Tabla guardada: amazon_bi.silver.reviews_clean")
 # COMMAND ----------
 # Celda 6 — Verificar
 display(df_silver.groupBy("category", "sentiment").count().orderBy("category"))
+=======
+
+# Celda 2 — Leer desde Bronze
+df_bronze = spark.table("amazon_bi.bronze.reviews_raw")
+print(f"📊 Registros en Bronze: {df_bronze.count():,}")
+>>>>>>> Stashed changes
