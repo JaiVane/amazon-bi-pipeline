@@ -10,7 +10,7 @@ sources:
 
 models:
   - name: silver_reviews
-    description: "Reseñas Amazon limpias y normalizadas — Capa Silver"
+    description: "Reseñas Amazon limpias, normalizadas y enriquecidas — Capa Silver"
     columns:
       - name: user_id
         description: "ID único del usuario"
@@ -37,6 +37,26 @@ models:
           - accepted_values:
               values: ['Electronics', 'Home_and_Kitchen']
       - name: verified_purchase
-        description: "Si la compra fue verificada"
+        description: "Si la compra fue verificada por Amazon"
+        tests:
+          - not_null
+      - name: event_datetime
+        description: "Fecha y hora del evento"
+        tests:
+          - not_null
+      - name: review_year
+        description: "Año de la reseña"
+        tests:
+          - not_null
+      - name: review_month
+        description: "Mes de la reseña"
+        tests:
+          - not_null
+      - name: avg_product_rating
+        description: "Rating promedio del producto calculado desde todas sus reseñas"
+        tests:
+          - not_null
+      - name: total_reviews_product
+        description: "Total de reseñas del producto"
         tests:
           - not_null
