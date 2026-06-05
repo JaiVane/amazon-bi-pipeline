@@ -31,7 +31,9 @@ log = logging.getLogger(__name__)
 BROKER          = "localhost:9092"
 TOPIC           = "amazon-reviews"
 GRUPO           = "amazon-bronze-writer"
-CARPETA_SALIDA  = "./data/landing"
+# CARPETA_SALIDA  = "./data/landing"
+CARPETA_SALIDA  = "/dbfs/Volumes/amazon_bi/bronze/landing"
+
 FLUSH_EVENTOS   = 10_000   # escribe un archivo cada N eventos
 FLUSH_SEGUNDOS  = 30       # o cada N segundos
 
